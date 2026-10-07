@@ -27,7 +27,7 @@ body {
 }
 
 .app-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -37,6 +37,14 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .title {
@@ -84,30 +92,60 @@ body {
   letter-spacing: 0.05em;
 }
 
-.filters {
+.filters-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(0,0,0,0.2);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
 }
 
 .filter-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--text-main);
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.375rem;
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 500;
 }
 
 .filter-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .filter-btn.active {
   background: var(--primary);
-  border-color: var(--primary-hover);
+  color: white;
+}
+
+.select-input, .search-input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.select-input option {
+  background: var(--bg-dark);
+  color: var(--text-main);
+}
+
+.select-input:focus, .search-input:focus {
+  border-color: var(--primary);
 }
 
 .table-container {
@@ -131,6 +169,7 @@ th {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 tr:hover td {
@@ -145,6 +184,7 @@ tr:hover td {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .status-exhibited {
@@ -159,20 +199,13 @@ tr:hover td {
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
-.search-input {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  width: 100%;
-  max-width: 300px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.search-input:focus {
-  border-color: var(--primary);
+.vendor-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .button {
@@ -191,4 +224,20 @@ tr:hover td {
 
 .button:hover {
   background: var(--primary-hover);
+}
+
+.button.secondary {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.button.secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.button.success {
+  background: var(--success);
+}
+
+.button.success:hover {
+  background: #059669;
 }
