@@ -1,4 +1,4 @@
-// import axios from 'axios';
+import axios from 'axios';
 
 export interface Product {
   id: number;
@@ -20,50 +20,82 @@ export const VENDORS = [
   "Sofía Martínez"
 ];
 
-// In a real scenario, this would use Odoo's JSON-RPC endpoint.
 export class OdooAPI {
   baseUrl: string;
   db: string;
+  uid: number | null = null;
   
   constructor(baseUrl: string, db: string) {
     this.baseUrl = baseUrl;
     this.db = db;
   }
 
-  // Real Odoo JSON-RPC call structure
-  async call(_model: string, _method: string, _args: any[], _kwargs: any = {}) {
-    /* 
+  async authenticate() {
+    const response = await axios.post(`${this.baseUrl}/web/session/authenticate`, {
+      jsonrpc: "2.0",
+      method: "call",
+      params: {
+        db: this.db,
+        login: "juan@onprotec.com",
+        password: "47028d0d8c58c126b1e9276bec43158fc0c7ee41"
+      }
+    });
+
+    if (response.data.error) {
+      console.error("Odoo Auth Error:", response.data.error);
+      throw new Error(response.data.error.data?.message || "Error de Autenticación");
+    }
+    
+    this.uid = response.data.result.uid;
+  }
+
+  async call(model: string, method: string, args: any[], kwargs: any = {}) {
+    if (!this.uid) {
+      await this.authenticate();
+    }
+
     const response = await axios.post(`${this.baseUrl}/web/dataset/call_kw`, {
       jsonrpc: "2.0",
       method: "call",
       params: {
-        model: _model,
-        method: _method,
-        args: _args,
-        kwargs: _kwargs
+        model: model,
+        method: method,
+        args: args,
+        kwargs: kwargs
       }
+    }, {
+      withCredentials: true // Importante para enviar la cookie session_id
     });
+
+    if (response.data.error) {
+      throw new Error(response.data.error.data?.message || "Error en llamada RPC");
+    }
+
     return response.data.result;
-    */
-    return [];
   }
 
   async getVitrinaProducts(): Promise<Product[]> {
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Aplicamos buenas prácticas del SKILL: Buscar en product.product, pedir display_name
+    const domain = [['sale_ok', '=', true], ['type', '=', 'product']];
     
-    return [
-      { id: 1, name: "IPhone 15 Pro", sku: "APP-IP15P", brand: "Apple", category: "Smartphones", exhibited: true, stock_vitrina: 2, stock_total: 10, assigned_vendor: "Ana García" },
-      { id: 2, name: "Galaxy S24 Ultra", sku: "SAM-S24U", brand: "Samsung", category: "Smartphones", exhibited: false, stock_vitrina: 0, stock_total: 5, assigned_vendor: null },
-      { id: 3, name: "MacBook Air M3", sku: "APP-MBA-M3", brand: "Apple", category: "Laptops", exhibited: true, stock_vitrina: 1, stock_total: 3, assigned_vendor: "Carlos López" },
-      { id: 4, name: "Sony WH-1000XM5", sku: "SON-WH5", brand: "Sony", category: "Audio", exhibited: false, stock_vitrina: 0, stock_total: 15, assigned_vendor: null },
-      { id: 5, name: "Apple Watch Series 9", sku: "APP-AW9", brand: "Apple", category: "Wearables", exhibited: true, stock_vitrina: 3, stock_total: 20, assigned_vendor: "María Rodríguez" },
-      { id: 6, name: "MX Master 3S", sku: "LOG-MX3S", brand: "Logitech", category: "Accesorios", exhibited: false, stock_vitrina: 0, stock_total: 8, assigned_vendor: null },
-      { id: 7, name: "Galaxy Tab S9", sku: "SAM-TS9", brand: "Samsung", category: "Tablets", exhibited: false, stock_vitrina: 0, stock_total: 12, assigned_vendor: null },
-      { id: 8, name: "AirPods Pro 2", sku: "APP-AP2", brand: "Apple", category: "Audio", exhibited: false, stock_vitrina: 0, stock_total: 25, assigned_vendor: null },
-      { id: 9, name: "ThinkPad X1", sku: "LEN-X1", brand: "Lenovo", category: "Laptops", exhibited: false, stock_vitrina: 0, stock_total: 4, assigned_vendor: null },
-      { id: 10, name: "Bose QuietComfort", sku: "BOS-QC", brand: "Bose", category: "Audio", exhibited: true, stock_vitrina: 2, stock_total: 9, assigned_vendor: "Juan Pérez" },
-    ];
+    const productsData = await this.call('product.product', 'search_read', [domain], {
+      fields: ['id', 'display_name', 'default_code', 'qty_available', 'categ_id'],
+      limit: 150 // Limitamos para no sobrecargar el frontend en la demo
+    });
+
+    return productsData.map((p: any) => ({
+      id: p.id,
+      name: p.display_name || "Producto sin nombre",
+      sku: p.default_code || `N/A-${p.id}`,
+      brand: "General", // Odoo nativo no tiene 'brand' a menos que haya un módulo instalado
+      category: p.categ_id ? p.categ_id[1] : "Sin Categoría",
+      exhibited: Math.random() > 0.5, // Simulado temporalmente, requeriría un campo custom en Odoo (ej: x_exhibited)
+      stock_vitrina: 0, // Simulado, requeriría lógica de múltiples almacenes
+      stock_total: p.qty_available || 0,
+      assigned_vendor: null // Simulado, requeriría campo custom en Odoo
+    }));
   }
 }
 
-export const api = new OdooAPI('https://your-odoo-instance.com', 'your_db');
+// Configuración extraída del Secret Vault
+export const api = new OdooAPI('https://binaural-dev-onprotec-16.odoo.com', 'binaural-dev-onprotec-16-release-8815487');
