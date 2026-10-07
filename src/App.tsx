@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Package, Search, Filter, AlertCircle, CheckCircle2, Store } from 'lucide-react';
-import { api, Product } from './OdooAPI';
+import { useEffect, useState, useMemo } from 'react';
+import { Package, Search, AlertCircle, CheckCircle2, Store } from 'lucide-react';
+import { api, type Product } from './OdooAPI';
 import './index.css';
 
 function App() {

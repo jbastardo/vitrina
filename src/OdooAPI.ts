@@ -1,4 +1,4 @@
-import axios from 'axios';
+// import axios from 'axios';
 
 export interface Product {
   id: number;
@@ -22,7 +22,7 @@ export class OdooAPI {
   }
 
   // Real Odoo JSON-RPC call structure
-  async call(model: string, method: string, args: any[], kwargs: any = {}) {
+  async call(_model: string, _method: string, _args: any[], _kwargs: any = {}) {
     /* 
     const response = await axios.post(`${this.baseUrl}/web/dataset/call_kw`, {
       jsonrpc: "2.0",
