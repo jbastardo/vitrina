@@ -84,7 +84,7 @@ function App() {
 
   // Filter Logic
   const filteredProducts = useMemo(() => {
-    return processedProducts.filter(p => {
+    const filtered = processedProducts.filter(p => {
       if (ignoredIds.includes(p.id)) return false; // Hide ignored products
 
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -114,7 +114,7 @@ function App() {
     });
     
     if (sortField === 'VALUATION') {
-      filtered.sort((a, b) => {
+      filtered.sort((a: Product, b: Product) => {
         return sortDirection === 'ASC' ? a.valuation - b.valuation : b.valuation - a.valuation;
       });
     }
@@ -158,7 +158,7 @@ function App() {
     }
 
     const headers = ["SKU", "Producto", "Marca", "Categoria", "Stock Total", "Stock Vitrina", "Valoracion", "Zona Caliente", "Estado", "Vendedor Asignado"];
-    const rows = filteredProducts.map(p => [
+    const rows = filteredProducts.map((p: Product) => [
       p.sku,
       `"${p.name}"`, // Quote to handle commas in names
       p.brand,
@@ -173,7 +173,7 @@ function App() {
 
     const csvContent = [
       headers.join(","),
-      ...rows.map(r => r.join(","))
+      ...rows.map((r: any[]) => r.join(","))
     ].join("\n");
 
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -340,7 +340,7 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {filteredProducts.map(product => (
+                {filteredProducts.map((product: Product) => (
                   <tr key={product.id}>
                     <td style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                       {product.sku}
