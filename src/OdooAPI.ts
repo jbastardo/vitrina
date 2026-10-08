@@ -14,11 +14,11 @@ export interface Product {
 }
 
 export const VENDORS = [
-  "Ana García",
-  "Carlos López",
-  "María Rodríguez",
-  "Juan Pérez",
-  "Sofía Martínez"
+  "Yadhira",
+  "Alejandro",
+  "Luis",
+  "Jose",
+  "Igor"
 ];
 
 export class OdooAPI {
@@ -76,11 +76,28 @@ export class OdooAPI {
   }
 
   async getVitrinaProducts(): Promise<Product[]> {
-    // Buscar solo productos con stock (qty_available > 0)
+    // Buscar solo productos con stock total (qty_available > 0)
     const domain = [['sale_ok', '=', true], ['type', '=', 'product'], ['qty_available', '>', 0]];
     
+    // 1. Fetch products
     const productsData = await this.call('product.product', 'search_read', [domain], {
       fields: ['id', 'display_name', 'default_code', 'qty_available', 'categ_id', 'brand_id', 'esl_tag_ids', 'x_studio_esl']
+    });
+
+    // 2. Fetch stock specifically in Vitrina (location_id = 36)
+    const vitrinaStockData = await this.call('stock.quant', 'read_group', 
+      [[['location_id', '=', 36], ['quantity', '>', 0]]],
+      {
+        fields: ['product_id', 'quantity'],
+        groupby: ['product_id']
+      }
+    );
+
+    // Map vitrina stock by product_id
+    const vitrinaStockMap: Record<number, number> = {};
+    vitrinaStockData.forEach((q: any) => {
+      const prodId = q.product_id[0];
+      vitrinaStockMap[prodId] = q.quantity;
     });
 
     return productsData.map((p: any) => {
@@ -91,6 +108,8 @@ export class OdooAPI {
         eslVal = 'Asignado';
       }
 
+      const vitrinaQty = vitrinaStockMap[p.id] || 0;
+
       return {
         id: p.id,
         name: p.display_name || "Producto sin nombre",
@@ -98,8 +117,8 @@ export class OdooAPI {
         brand: p.brand_id ? p.brand_id[1] : "Genérico",
         category: p.categ_id ? p.categ_id[1] : "Sin Categoría",
         esl: eslVal,
-        exhibited: Math.random() > 0.5, // Simulado temporalmente
-        stock_vitrina: 0, // Simulado
+        exhibited: vitrinaQty > 0, // Es exhibido SOLO si hay inventario en Vitrina
+        stock_vitrina: vitrinaQty,
         stock_total: p.qty_available || 0,
         assigned_vendor: null
       };
