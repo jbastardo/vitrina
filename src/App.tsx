@@ -14,6 +14,8 @@ function App() {
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterVendor, setFilterVendor] = useState('ALL');
   const [filterESL, setFilterESL] = useState('ALL');
+  const [filterHotZone, setFilterHotZone] = useState('ALL');
+  const [hotZoneCriteria, setHotZoneCriteria] = useState<'VALUATION' | 'SALES' | 'PURCHASES'>('VALUATION');
   const [search, setSearch] = useState('');
   const [ignoredIds, setIgnoredIds] = useState<number[]>(() => {
     const saved = localStorage.getItem('vitrina_ignored_products');
@@ -46,9 +48,41 @@ function App() {
   const brands = useMemo(() => Array.from(new Set(products.map(p => p.brand).filter(Boolean))), [products]);
   const categories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))), [products]);
 
+  // Process Hot Zones dynamically
+  const processedProducts = useMemo(() => {
+    if (products.length === 0) return [];
+    
+    const newProducts = products.map(p => ({...p, is_hot_zone: false}));
+    
+    // Sort by criteria
+    newProducts.sort((a, b) => {
+      if (hotZoneCriteria === 'VALUATION') return b.valuation - a.valuation;
+      if (hotZoneCriteria === 'SALES') return b.sales_count - a.sales_count;
+      if (hotZoneCriteria === 'PURCHASES') return b.purchases_count - a.purchases_count;
+      return 0;
+    });
+
+    // Mark top 20%
+    const hotZoneCount = Math.ceil(newProducts.length * 0.2);
+    for (let i = 0; i < hotZoneCount; i++) {
+      let val = 0;
+      if (hotZoneCriteria === 'VALUATION') val = newProducts[i].valuation;
+      if (hotZoneCriteria === 'SALES') val = newProducts[i].sales_count;
+      if (hotZoneCriteria === 'PURCHASES') val = newProducts[i].purchases_count;
+
+      if (val > 0) {
+        newProducts[i].is_hot_zone = true;
+      }
+    }
+
+    // Sort back by ID or name to keep table stable, or leave sorted by the criteria?
+    // Let's leave sorted by the criteria so hot zones are at the top
+    return newProducts;
+  }, [products, hotZoneCriteria]);
+
   // Filter Logic
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+    return processedProducts.filter(p => {
       if (ignoredIds.includes(p.id)) return false; // Hide ignored products
 
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -70,11 +104,13 @@ function App() {
       if (filterESL === 'WITH_ESL' && !p.esl) return false;
       if (filterESL === 'WITHOUT_ESL' && p.esl) return false;
 
+      if (filterHotZone === 'HOT_ZONE' && !p.is_hot_zone) return false;
+
       if (p.stock_total <= 0) return false; // Solo mostramos los que tienen stock para gestionar la vitrina
 
       return true;
     });
-  }, [products, filterStatus, filterBrand, filterCategory, filterVendor, filterESL, search, ignoredIds]);
+  }, [processedProducts, filterStatus, filterBrand, filterCategory, filterVendor, filterESL, filterHotZone, search, ignoredIds]);
 
   const totalProducts = products.length;
   const availableProducts = products.filter(p => p.stock_total > 0);
@@ -224,6 +260,17 @@ function App() {
             <option value="WITHOUT_ESL">Sin ESL</option>
           </select>
 
+          <select className="select-input" value={filterHotZone} onChange={e => setFilterHotZone(e.target.value)}>
+            <option value="ALL">Todas las Zonas</option>
+            <option value="HOT_ZONE">Solo Zonas Calientes</option>
+          </select>
+
+          <select className="select-input" value={hotZoneCriteria} onChange={e => setHotZoneCriteria(e.target.value as any)} style={{ borderColor: 'var(--primary)', color: 'var(--primary)', fontWeight: 'bold' }}>
+            <option value="VALUATION">Cálculo: Valoración</option>
+            <option value="SALES">Cálculo: Ventas</option>
+            <option value="PURCHASES">Cálculo: Compras</option>
+          </select>
+
           <div style={{ flex: 1 }}></div>
           
           <div style={{ position: 'relative' }}>
@@ -250,8 +297,8 @@ function App() {
             Cargando datos de Odoo...
           </div>
         ) : (
-          <div className="table-container">
-            <table>
+          <div className="table-container" style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: '1000px' }}>
               <thead>
                 <tr>
                   <th>SKU</th>
@@ -281,10 +328,12 @@ function App() {
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                       {product.brand} • {product.category}
                     </td>
-                    <td>{product.stock_vitrina} / {product.stock_total}</td>
-                    <td>${product.valuation.toLocaleString()}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      {product.is_hot_zone ? <span title="Top 20% Valoración"><Flame size={18} color="#ef4444" /></span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                    <td style={{ minWidth: '90px' }}>{product.stock_vitrina} / {product.stock_total}</td>
+                    <td style={{ minWidth: '120px' }}>
+                      ${product.valuation.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ textAlign: 'center', minWidth: '110px' }}>
+                      {product.is_hot_zone ? <span title="Top 20% Zona Caliente"><Flame size={18} color="#ef4444" /></span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                     </td>
                     <td>
                       {product.esl ? (

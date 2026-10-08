@@ -13,6 +13,8 @@ export interface Product {
   esl: string | null;
   list_price: number;
   valuation: number;
+  sales_count: number;
+  purchases_count: number;
   is_hot_zone: boolean;
 }
 
@@ -84,7 +86,7 @@ export class OdooAPI {
     
     // 1. Fetch products
     const productsData = await this.call('product.product', 'search_read', [domain], {
-      fields: ['id', 'display_name', 'default_code', 'qty_available', 'list_price', 'categ_id', 'brand_id', 'esl_tag_ids', 'x_studio_esl']
+      fields: ['id', 'display_name', 'default_code', 'qty_available', 'list_price', 'sales_count', 'purchased_product_qty', 'categ_id', 'brand_id', 'esl_tag_ids', 'x_studio_esl']
     });
 
     // 2. Fetch stock specifically in Vitrina (location_id = 36)
@@ -129,18 +131,11 @@ export class OdooAPI {
         assigned_vendor: null,
         list_price: list_price,
         valuation: valuation,
+        sales_count: p.sales_count || 0,
+        purchases_count: p.purchased_product_qty || 0,
         is_hot_zone: false
       };
     });
-
-    // Calcular Zonas Calientes (Top 20% de productos por valoración)
-    mappedProducts.sort((a: Product, b: Product) => b.valuation - a.valuation);
-    const hotZoneCount = Math.ceil(mappedProducts.length * 0.2);
-    for (let i = 0; i < hotZoneCount; i++) {
-        if (mappedProducts[i].valuation > 0) {
-            mappedProducts[i].is_hot_zone = true;
-        }
-    }
 
     return mappedProducts;
   }
