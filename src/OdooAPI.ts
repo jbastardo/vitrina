@@ -97,5 +97,5 @@ export class OdooAPI {
   }
 }
 
-// Configuración extraída del Secret Vault
-export const api = new OdooAPI('https://binaural-dev-onprotec-16.odoo.com', 'binaural-dev-onprotec-16-release-8815487');
+// Configuración extraída del Secret Vault y enrutada a través del proxy interno para evitar CORS
+export const api = new OdooAPI('/odoo_api', 'binaural-dev-onprotec-16-release-8815487');
