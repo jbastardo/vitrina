@@ -10,6 +10,7 @@ export interface Product {
   stock_vitrina: number;
   stock_total: number;
   assigned_vendor?: string | null;
+  esl: string | null;
 }
 
 export const VENDORS = [
@@ -75,24 +76,34 @@ export class OdooAPI {
   }
 
   async getVitrinaProducts(): Promise<Product[]> {
-    // Aplicamos buenas prácticas del SKILL: Buscar en product.product, pedir display_name
-    const domain = [['sale_ok', '=', true], ['type', '=', 'product']];
+    // Buscar solo productos con stock (qty_available > 0)
+    const domain = [['sale_ok', '=', true], ['type', '=', 'product'], ['qty_available', '>', 0]];
     
     const productsData = await this.call('product.product', 'search_read', [domain], {
-      fields: ['id', 'display_name', 'default_code', 'qty_available', 'categ_id']
+      fields: ['id', 'display_name', 'default_code', 'qty_available', 'categ_id', 'brand_id', 'esl_tag_ids', 'x_studio_esl']
     });
 
-    return productsData.map((p: any) => ({
-      id: p.id,
-      name: p.display_name || "Producto sin nombre",
-      sku: p.default_code || `N/A-${p.id}`,
-      brand: "General", // Odoo nativo no tiene 'brand' a menos que haya un módulo instalado
-      category: p.categ_id ? p.categ_id[1] : "Sin Categoría",
-      exhibited: Math.random() > 0.5, // Simulado temporalmente, requeriría un campo custom en Odoo (ej: x_exhibited)
-      stock_vitrina: 0, // Simulado, requeriría lógica de múltiples almacenes
-      stock_total: p.qty_available || 0,
-      assigned_vendor: null // Simulado, requeriría campo custom en Odoo
-    }));
+    return productsData.map((p: any) => {
+      let eslVal = null;
+      if (p.x_studio_esl) {
+        eslVal = p.x_studio_esl;
+      } else if (p.esl_tag_ids && p.esl_tag_ids.length > 0) {
+        eslVal = 'Asignado';
+      }
+
+      return {
+        id: p.id,
+        name: p.display_name || "Producto sin nombre",
+        sku: p.default_code || `N/A-${p.id}`,
+        brand: p.brand_id ? p.brand_id[1] : "Genérico",
+        category: p.categ_id ? p.categ_id[1] : "Sin Categoría",
+        esl: eslVal,
+        exhibited: Math.random() > 0.5, // Simulado temporalmente
+        stock_vitrina: 0, // Simulado
+        stock_total: p.qty_available || 0,
+        assigned_vendor: null
+      };
+    });
   }
 }
 

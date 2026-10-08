@@ -13,7 +13,17 @@ function App() {
   const [filterBrand, setFilterBrand] = useState('ALL');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterVendor, setFilterVendor] = useState('ALL');
+  const [filterESL, setFilterESL] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [ignoredIds, setIgnoredIds] = useState<number[]>(() => {
+    const saved = localStorage.getItem('vitrina_ignored_products');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Save ignored products whenever it changes
+  useEffect(() => {
+    localStorage.setItem('vitrina_ignored_products', JSON.stringify(ignoredIds));
+  }, [ignoredIds]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -39,6 +49,8 @@ function App() {
   // Filter Logic
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
+      if (ignoredIds.includes(p.id)) return false; // Hide ignored products
+
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
                             p.sku.toLowerCase().includes(search.toLowerCase());
       if (!matchesSearch) return false;
@@ -55,9 +67,12 @@ function App() {
         return false;
       }
 
+      if (filterESL === 'WITH_ESL' && !p.esl) return false;
+      if (filterESL === 'WITHOUT_ESL' && p.esl) return false;
+
       return true;
     });
-  }, [products, filterStatus, filterBrand, filterCategory, filterVendor, search]);
+  }, [products, filterStatus, filterBrand, filterCategory, filterVendor, filterESL, search, ignoredIds]);
 
   const missingCount = products.filter(p => !p.exhibited).length;
   const exhibitedCount = products.filter(p => p.exhibited).length;
@@ -132,6 +147,11 @@ function App() {
             <Users size={18} />
             Asignar {unassignedMissingCount} Pendientes
           </button>
+          {ignoredIds.length > 0 && (
+            <button className="button secondary" onClick={() => setIgnoredIds([])} style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+              Restaurar {ignoredIds.length} Ocultos
+            </button>
+          )}
         </div>
       </header>
 
@@ -180,6 +200,12 @@ function App() {
             {VENDORS.map(v => <option key={v} value={v}>{v}</option>)}
           </select>
 
+          <select className="select-input" value={filterESL} onChange={e => setFilterESL(e.target.value)}>
+            <option value="ALL">Filtro ESL</option>
+            <option value="WITH_ESL">Con ESL</option>
+            <option value="WITHOUT_ESL">Sin ESL</option>
+          </select>
+
           <div style={{ flex: 1 }}></div>
           
           <div style={{ position: 'relative' }}>
@@ -214,8 +240,10 @@ function App() {
                   <th>Producto</th>
                   <th>Marca / Cat</th>
                   <th>Stock Vitrina</th>
+                  <th>ESL</th>
                   <th>Estado</th>
                   <th>Asignado A</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -235,6 +263,13 @@ function App() {
                     </td>
                     <td>{product.stock_vitrina} / {product.stock_total}</td>
                     <td>
+                      {product.esl ? (
+                        <span className="vendor-badge" style={{ background: 'var(--primary)', color: '#fff' }}>{product.esl}</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>---</span>
+                      )}
+                    </td>
+                    <td>
                       {product.exhibited ? (
                         <span className="status-badge status-exhibited">
                           <CheckCircle2 size={14} /> Exhibido
@@ -251,6 +286,15 @@ function App() {
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>---</span>
                       )}
+                    </td>
+                    <td>
+                      <button 
+                        className="button secondary" 
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                        onClick={() => setIgnoredIds(prev => [...prev, product.id])}
+                      >
+                        Ocultar
+                      </button>
                     </td>
                   </tr>
                 ))}
