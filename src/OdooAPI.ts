@@ -11,6 +11,9 @@ export interface Product {
   stock_total: number;
   assigned_vendor?: string | null;
   esl: string | null;
+  list_price: number;
+  valuation: number;
+  is_hot_zone: boolean;
 }
 
 export const VENDORS = [
@@ -81,7 +84,7 @@ export class OdooAPI {
     
     // 1. Fetch products
     const productsData = await this.call('product.product', 'search_read', [domain], {
-      fields: ['id', 'display_name', 'default_code', 'qty_available', 'categ_id', 'brand_id', 'esl_tag_ids', 'x_studio_esl']
+      fields: ['id', 'display_name', 'default_code', 'qty_available', 'list_price', 'categ_id', 'brand_id', 'esl_tag_ids', 'x_studio_esl']
     });
 
     // 2. Fetch stock specifically in Vitrina (location_id = 36)
@@ -100,7 +103,7 @@ export class OdooAPI {
       vitrinaStockMap[prodId] = q.quantity;
     });
 
-    return productsData.map((p: any) => {
+    let mappedProducts = productsData.map((p: any) => {
       let eslVal = null;
       if (p.x_studio_esl) {
         eslVal = p.x_studio_esl;
@@ -109,6 +112,9 @@ export class OdooAPI {
       }
 
       const vitrinaQty = vitrinaStockMap[p.id] || 0;
+      const stock_total = p.qty_available || 0;
+      const list_price = p.list_price || 0;
+      const valuation = stock_total * list_price;
 
       return {
         id: p.id,
@@ -119,10 +125,24 @@ export class OdooAPI {
         esl: eslVal,
         exhibited: vitrinaQty > 0, // Es exhibido SOLO si hay inventario en Vitrina
         stock_vitrina: vitrinaQty,
-        stock_total: p.qty_available || 0,
-        assigned_vendor: null
+        stock_total: stock_total,
+        assigned_vendor: null,
+        list_price: list_price,
+        valuation: valuation,
+        is_hot_zone: false
       };
     });
+
+    // Calcular Zonas Calientes (Top 20% de productos por valoración)
+    mappedProducts.sort((a: Product, b: Product) => b.valuation - a.valuation);
+    const hotZoneCount = Math.ceil(mappedProducts.length * 0.2);
+    for (let i = 0; i < hotZoneCount; i++) {
+        if (mappedProducts[i].valuation > 0) {
+            mappedProducts[i].is_hot_zone = true;
+        }
+    }
+
+    return mappedProducts;
   }
 }
 

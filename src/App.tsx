@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Package, Search, AlertCircle, CheckCircle2, Store, Download, Users } from 'lucide-react';
+import { Package, Search, AlertCircle, CheckCircle2, Store, Download, Users, Flame } from 'lucide-react';
 import { api, type Product, VENDORS } from './OdooAPI';
 import './index.css';
 
@@ -111,7 +111,7 @@ function App() {
       return;
     }
 
-    const headers = ["SKU", "Producto", "Marca", "Categoria", "Stock Total", "Stock Vitrina", "Estado", "Vendedor Asignado"];
+    const headers = ["SKU", "Producto", "Marca", "Categoria", "Stock Total", "Stock Vitrina", "Valoracion", "Zona Caliente", "Estado", "Vendedor Asignado"];
     const rows = filteredProducts.map(p => [
       p.sku,
       `"${p.name}"`, // Quote to handle commas in names
@@ -119,6 +119,8 @@ function App() {
       p.category,
       p.stock_total,
       p.stock_vitrina,
+      p.valuation,
+      p.is_hot_zone ? "SI" : "NO",
       p.exhibited ? "Exhibido" : "Falta",
       p.assigned_vendor || "Sin Asignar"
     ]);
@@ -256,6 +258,8 @@ function App() {
                   <th>Producto</th>
                   <th>Marca / Cat</th>
                   <th>Stock Vitrina</th>
+                  <th>Valoración</th>
+                  <th>Zona Caliente</th>
                   <th>ESL</th>
                   <th>Estado</th>
                   <th>Asignado A</th>
@@ -278,6 +282,10 @@ function App() {
                       {product.brand} • {product.category}
                     </td>
                     <td>{product.stock_vitrina} / {product.stock_total}</td>
+                    <td>${product.valuation.toLocaleString()}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      {product.is_hot_zone ? <Flame size={18} color="#ef4444" title="Top 20% Valoración" /> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                    </td>
                     <td>
                       {product.esl ? (
                         <span className="vendor-badge" style={{ background: 'var(--primary)', color: '#fff' }}>{product.esl}</span>
@@ -316,7 +324,7 @@ function App() {
                 ))}
                 {filteredProducts.length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                       No se encontraron productos con estos filtros.
                     </td>
                   </tr>
