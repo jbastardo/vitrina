@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Package, Search, AlertCircle, CheckCircle2, Store, Download, Users, Flame } from 'lucide-react';
+import { Package, Search, AlertCircle, CheckCircle2, Store, Download, Users, Flame, ArrowUp, ArrowDown } from 'lucide-react';
 import { api, type Product, VENDORS } from './OdooAPI';
 import './index.css';
 
@@ -17,6 +17,8 @@ function App() {
   const [filterHotZone, setFilterHotZone] = useState('ALL');
   const [hotZoneCriteria, setHotZoneCriteria] = useState<'VALUATION' | 'SALES' | 'PURCHASES'>('VALUATION');
   const [search, setSearch] = useState('');
+  const [sortField, setSortField] = useState<'VALUATION' | 'NONE'>('NONE');
+  const [sortDirection, setSortDirection] = useState<'ASC' | 'DESC'>('DESC');
   const [ignoredIds, setIgnoredIds] = useState<number[]>(() => {
     const saved = localStorage.getItem('vitrina_ignored_products');
     return saved ? JSON.parse(saved) : [];
@@ -110,7 +112,15 @@ function App() {
 
       return true;
     });
-  }, [processedProducts, filterStatus, filterBrand, filterCategory, filterVendor, filterESL, filterHotZone, search, ignoredIds]);
+    
+    if (sortField === 'VALUATION') {
+      filtered.sort((a, b) => {
+        return sortDirection === 'ASC' ? a.valuation - b.valuation : b.valuation - a.valuation;
+      });
+    }
+
+    return filtered;
+  }, [processedProducts, filterStatus, filterBrand, filterCategory, filterVendor, filterESL, filterHotZone, search, ignoredIds, sortField, sortDirection]);
 
   const totalProducts = products.length;
   const availableProducts = products.filter(p => p.stock_total > 0);
@@ -305,7 +315,23 @@ function App() {
                   <th>Producto</th>
                   <th>Marca / Cat</th>
                   <th>Stock Vitrina</th>
-                  <th>Valoración</th>
+                  <th 
+                    style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }} 
+                    onClick={() => {
+                      if (sortField === 'VALUATION') {
+                        if (sortDirection === 'DESC') setSortDirection('ASC');
+                        else { setSortField('NONE'); setSortDirection('DESC'); }
+                      } else {
+                        setSortField('VALUATION');
+                        setSortDirection('DESC');
+                      }
+                    }}
+                  >
+                    Valoración
+                    {sortField === 'VALUATION' && (
+                      sortDirection === 'ASC' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                    )}
+                  </th>
                   <th>Zona Caliente</th>
                   <th>ESL</th>
                   <th>Estado</th>
