@@ -284,7 +284,7 @@ function App() {
                     <td>{product.stock_vitrina} / {product.stock_total}</td>
                     <td>${product.valuation.toLocaleString()}</td>
                     <td style={{ textAlign: 'center' }}>
-                      {product.is_hot_zone ? <Flame size={18} color="#ef4444" title="Top 20% Valoración" /> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
+                      {product.is_hot_zone ? <span title="Top 20% Valoración"><Flame size={18} color="#ef4444" /></span> : <span style={{ color: 'var(--text-muted)' }}>-</span>}
                     </td>
                     <td>
                       {product.esl ? (
