@@ -37,7 +37,7 @@ export class OdooAPI {
       params: {
         db: this.db,
         login: "juan@onprotec.com",
-        password: "47028d0d8c58c126b1e9276bec43158fc0c7ee41"
+        password: "9803"
       }
     });
 
