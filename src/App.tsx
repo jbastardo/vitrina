@@ -160,20 +160,20 @@ function App() {
     const headers = ["SKU", "Producto", "Marca", "Categoria", "Stock Total", "Stock Vitrina", "Valoracion", "Zona Caliente", "Estado", "Vendedor Asignado"];
     const rows = filteredProducts.map((p: Product) => [
       p.sku,
-      `"${p.name}"`, // Quote to handle commas in names
+      `"${p.name.replace(/"/g, '""')}"`, // Quote to handle commas/semicolons and escape quotes
       p.brand,
       p.category,
       p.stock_total,
       p.stock_vitrina,
-      p.valuation,
+      p.valuation.toString().replace('.', ','), // Use comma for decimal for Spanish Excel
       p.is_hot_zone ? "SI" : "NO",
       p.exhibited ? "Exhibido" : "Falta",
       p.assigned_vendor || "Sin Asignar"
     ]);
 
     const csvContent = [
-      headers.join(","),
-      ...rows.map((r: any[]) => r.join(","))
+      headers.join(";"),
+      ...rows.map((r: any[]) => r.join(";"))
     ].join("\n");
 
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
