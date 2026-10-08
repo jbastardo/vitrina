@@ -76,8 +76,8 @@ export class OdooAPI {
   }
 
   async getVitrinaProducts(): Promise<Product[]> {
-    // Buscar solo productos con stock total (qty_available > 0)
-    const domain = [['sale_ok', '=', true], ['type', '=', 'product'], ['qty_available', '>', 0]];
+    // Buscar todos los productos almacenables vendibles para poder calcular el total vs existencia
+    const domain = [['sale_ok', '=', true], ['type', '=', 'product']];
     
     // 1. Fetch products
     const productsData = await this.call('product.product', 'search_read', [domain], {

@@ -70,13 +70,22 @@ function App() {
       if (filterESL === 'WITH_ESL' && !p.esl) return false;
       if (filterESL === 'WITHOUT_ESL' && p.esl) return false;
 
+      if (p.stock_total <= 0) return false; // Solo mostramos los que tienen stock para gestionar la vitrina
+
       return true;
-    });
   }, [products, filterStatus, filterBrand, filterCategory, filterVendor, filterESL, search, ignoredIds]);
 
-  const missingCount = products.filter(p => !p.exhibited).length;
-  const exhibitedCount = products.filter(p => p.exhibited).length;
-  const unassignedMissingCount = products.filter(p => !p.exhibited && !p.assigned_vendor).length;
+  const totalProducts = products.length;
+  const availableProducts = products.filter(p => p.stock_total > 0);
+  const availableCount = availableProducts.length;
+
+  const missingCount = availableProducts.filter(p => !p.exhibited).length;
+  const exhibitedCount = availableProducts.filter(p => p.exhibited).length;
+  const unassignedMissingCount = availableProducts.filter(p => !p.exhibited && !p.assigned_vendor).length;
+
+  const percentageAvailable = totalProducts > 0 ? Math.round((availableCount / totalProducts) * 100) : 0;
+  const percentageExhibited = availableCount > 0 ? Math.round((exhibitedCount / availableCount) * 100) : 0;
+  const percentageMissing = availableCount > 0 ? Math.round((missingCount / availableCount) * 100) : 0;
 
   const handleAutoAssign = () => {
     setProducts(prev => {
@@ -157,16 +166,22 @@ function App() {
 
       <div className="stats-grid">
         <div className="card stat-card">
-          <span className="stat-label">Total Productos</span>
-          <span className="stat-value">{products.length}</span>
+          <span className="stat-label">Total Productos / Existencia</span>
+          <span className="stat-value">
+            {totalProducts} / {availableCount} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>({percentageAvailable}%)</span>
+          </span>
         </div>
         <div className="card stat-card">
-          <span className="stat-label">Exhibidos en Vitrina</span>
-          <span className="stat-value" style={{ color: 'var(--success)' }}>{exhibitedCount}</span>
+          <span className="stat-label">Exhibidos (Disponibles)</span>
+          <span className="stat-value" style={{ color: 'var(--success)' }}>
+            {exhibitedCount} <span style={{ fontSize: '1rem', opacity: 0.8 }}>({percentageExhibited}%)</span>
+          </span>
         </div>
         <div className="card stat-card" style={{ borderColor: missingCount > 0 ? 'var(--danger)' : '' }}>
-          <span className="stat-label">Faltantes en Vitrina</span>
-          <span className="stat-value" style={{ color: 'var(--danger)' }}>{missingCount}</span>
+          <span className="stat-label">Faltantes (Disponibles)</span>
+          <span className="stat-value" style={{ color: 'var(--danger)' }}>
+            {missingCount} <span style={{ fontSize: '1rem', opacity: 0.8 }}>({percentageMissing}%)</span>
+          </span>
         </div>
       </div>
 
