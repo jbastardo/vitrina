@@ -6,6 +6,7 @@ import './index.css';
 function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Filters
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'EXHIBITED' | 'MISSING'>('ALL');
@@ -17,11 +18,13 @@ function App() {
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
+      setError(null);
       try {
         const data = await api.getVitrinaProducts();
         setProducts(data);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch products from Odoo:", err);
+        setError(err.message || "Error al conectar con Odoo (Verifica CORS en la consola de Chrome)");
       } finally {
         setLoading(false);
       }
@@ -192,7 +195,13 @@ function App() {
           </div>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '0.5rem', margin: '1rem 0' }}>
+            <AlertCircle size={32} style={{ marginBottom: '1rem' }} />
+            <h3>Ocurrió un error al cargar los datos</h3>
+            <p>{error}</p>
+          </div>
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
             Cargando datos de Odoo...
           </div>
