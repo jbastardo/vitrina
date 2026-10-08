@@ -79,8 +79,7 @@ export class OdooAPI {
     const domain = [['sale_ok', '=', true], ['type', '=', 'product']];
     
     const productsData = await this.call('product.product', 'search_read', [domain], {
-      fields: ['id', 'display_name', 'default_code', 'qty_available', 'categ_id'],
-      limit: 150 // Limitamos para no sobrecargar el frontend en la demo
+      fields: ['id', 'display_name', 'default_code', 'qty_available', 'categ_id']
     });
 
     return productsData.map((p: any) => ({
