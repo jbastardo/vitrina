@@ -73,6 +73,7 @@ function App() {
       if (p.stock_total <= 0) return false; // Solo mostramos los que tienen stock para gestionar la vitrina
 
       return true;
+    });
   }, [products, filterStatus, filterBrand, filterCategory, filterVendor, filterESL, search, ignoredIds]);
 
   const totalProducts = products.length;
