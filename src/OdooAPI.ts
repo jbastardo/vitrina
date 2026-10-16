@@ -16,6 +16,11 @@ export interface Product {
   sales_count: number;
   purchases_count: number;
   is_hot_zone: boolean;
+  days_in_vitrina: number | null;
+  vitrina_in_date: string | null;
+  has_serial: boolean;
+  serial_numbers: Array<{ lotId: number; lotName: string; days: number; date: string }>;
+  manual_rotation_date?: string | null;
 }
 
 export const VENDORS = [
@@ -89,20 +94,57 @@ export class OdooAPI {
       fields: ['id', 'display_name', 'default_code', 'qty_available', 'list_price', 'sales_count', 'purchased_product_qty', 'categ_id', 'brand_id', 'esl_tag_ids', 'x_studio_esl']
     });
 
-    // 2. Fetch stock specifically in Vitrina (location_id = 36)
-    const vitrinaStockData = await this.call('stock.quant', 'read_group', 
+    // 2. Fetch detailed stock quants in Vitrina (location_id = 36) with dates & serial numbers
+    const vitrinaQuants = await this.call('stock.quant', 'search_read', 
       [[['location_id', '=', 36], ['quantity', '>', 0]]],
       {
-        fields: ['product_id', 'quantity'],
-        groupby: ['product_id']
+        fields: ['product_id', 'quantity', 'lot_id', 'create_date']
       }
     );
 
-    // Map vitrina stock by product_id
-    const vitrinaStockMap: Record<number, number> = {};
-    vitrinaStockData.forEach((q: any) => {
+    // Map vitrina stock and time in vitrina by product_id
+    interface VitrinaQuantInfo {
+      totalQty: number;
+      oldestDate: string | null;
+      maxDays: number;
+      hasSerial: boolean;
+      serials: Array<{ lotId: number; lotName: string; days: number; date: string }>;
+    }
+
+    const now = new Date();
+    const vitrinaStockMap: Record<number, VitrinaQuantInfo> = {};
+
+    vitrinaQuants.forEach((q: any) => {
+      if (!q.product_id) return;
       const prodId = q.product_id[0];
-      vitrinaStockMap[prodId] = q.quantity;
+      const createdDateStr = q.create_date ? q.create_date.replace(' ', 'T') + 'Z' : null;
+      const createdTime = createdDateStr ? new Date(createdDateStr).getTime() : now.getTime();
+      const diffDays = Math.max(0, Math.floor((now.getTime() - createdTime) / (1000 * 60 * 60 * 24)));
+
+      if (!vitrinaStockMap[prodId]) {
+        vitrinaStockMap[prodId] = {
+          totalQty: 0,
+          oldestDate: q.create_date || null,
+          maxDays: diffDays,
+          hasSerial: Boolean(q.lot_id),
+          serials: []
+        };
+      }
+
+      vitrinaStockMap[prodId].totalQty += (q.quantity || 0);
+      if (diffDays > vitrinaStockMap[prodId].maxDays) {
+        vitrinaStockMap[prodId].maxDays = diffDays;
+        vitrinaStockMap[prodId].oldestDate = q.create_date;
+      }
+      if (q.lot_id) {
+        vitrinaStockMap[prodId].hasSerial = true;
+        vitrinaStockMap[prodId].serials.push({
+          lotId: q.lot_id[0],
+          lotName: q.lot_id[1],
+          days: diffDays,
+          date: q.create_date
+        });
+      }
     });
 
     let mappedProducts = productsData.map((p: any) => {
@@ -113,7 +155,8 @@ export class OdooAPI {
         eslVal = 'Asignado';
       }
 
-      const vitrinaQty = vitrinaStockMap[p.id] || 0;
+      const vitrinaInfo = vitrinaStockMap[p.id];
+      const vitrinaQty = vitrinaInfo ? vitrinaInfo.totalQty : 0;
       const stock_total = p.qty_available || 0;
       const list_price = p.list_price || 0;
       const valuation = stock_total * list_price;
@@ -133,7 +176,11 @@ export class OdooAPI {
         valuation: valuation,
         sales_count: p.sales_count || 0,
         purchases_count: p.purchased_product_qty || 0,
-        is_hot_zone: false
+        is_hot_zone: false,
+        days_in_vitrina: vitrinaQty > 0 && vitrinaInfo ? vitrinaInfo.maxDays : null,
+        vitrina_in_date: vitrinaQty > 0 && vitrinaInfo ? vitrinaInfo.oldestDate : null,
+        has_serial: vitrinaInfo ? vitrinaInfo.hasSerial : false,
+        serial_numbers: vitrinaInfo ? vitrinaInfo.serials : []
       };
     });
 

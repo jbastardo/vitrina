@@ -11,20 +11,27 @@ Aplicación web diseñada para conectarse a Odoo mediante API (JSON-RPC) y verif
 
 ## Componentes Principales
 - **`App.tsx`:** Dashboard principal con:
-  - Tarjetas de estadísticas (Total, Exhibidos, Faltantes).
-  - Filtros de estado (Todos, Exhibidos, Sin Exhibición).
+  - Tarjetas de estadísticas (Total, Exhibidos, Peligro Luz >60d, Faltantes).
+  - Filtros de estado (Todos, Exhibidos, Sin Exhibición), marca, categoría, vendedor, ESL y permanencia/rotación.
   - Barra de búsqueda por nombre o SKU.
-  - Tabla de resultados con indicadores visuales de estado.
-- **`OdooAPI.ts`:** Clase encargada de la comunicación con el backend de Odoo.
-- **`index.css`:** Sistema de diseño visual moderno.
+  - Tabla de resultados con indicadores visuales de estado y semáforo de permanencia.
+- **`OdooAPI.ts`:** Consulta en tiempo real a Odoo de `product.product` y `stock.quant` (con `create_date` y números de serie `lot_id`).
+- **`index.css`:** Sistema de diseño visual moderno con badges semafóricos de permanencia.
 
 ## Características Destacadas
 - **Valoración de Inventario:** Cálculo del valor total almacenado por producto (`stock * precio de lista`).
-- **Zonas Calientes (Hot Zones):** Aplicación de mejores prácticas de vitrinismo que identifica el top 20% de productos de mayor valoración para darles prioridad visual (ej. ubicación a nivel de los ojos) usando un indicador de llama (🔥).
-- **Asignación de Reposición:** Sistema que distribuye equitativamente entre los vendedores la carga de llenar los huecos detectados en la vitrina.
-- **Exportación de Reportes:** Permite descargar a CSV todo el consolidado actualizando el análisis de valoración.
+- **Control de Permanencia y Prevención de Decoloración (Días en Vitrina):**
+  - Cálculo de días exactos que cada producto lleva exhibido bajo la luz de la vitrina.
+  - Columna ordenable de mayor a menor para detectar de inmediato los productos más antiguos que urgen ser rotados.
+  - Semáforo visual: Verde (≤30 días), Amarillo (31-60 días), Rojo / Peligro (>60 días).
+- **Trazabilidad de Seriales vs Productos Fungibles (Sin Serial):**
+  - **Con Serial:** Rastreo automático por el número de serie (`stock.production.lot`) y su fecha de ingreso a vitrina.
+  - **Sin Serial:** Botón de acción rápida `[🔄 Rotar Caja]` que resetea el contador a 0 días y registra la fecha de rotación manual persistida en `localStorage`.
+- **Zonas Calientes (Hot Zones):** Identifica el top 20% de productos de mayor valoración para darles prioridad visual (ej. nivel de ojos) usando indicador de llama (🔥).
+- **Asignación de Reposición:** Distribuye equitativamente entre los vendedores la carga de reponer huecos en vitrina.
+- **Exportación de Reportes:** Descarga en CSV el consolidado con valoración, días en vitrina, fecha de ingreso y tipo de control.
 
 ## Próximos Pasos (To-Do)
-- Configurar credenciales reales de Odoo en `OdooAPI.ts`.
-- Desplegar la aplicación (ej. en Coolify o Vercel).
-- Asegurar configuración de CORS en el servidor Odoo para permitir peticiones desde el frontend.
+- Desplegar la aplicación en Coolify con proxy Odoo integrado.
+- Posibilidad de sincronizar las rotaciones manuales como transferencias internas automáticas en Odoo vía API.
+
