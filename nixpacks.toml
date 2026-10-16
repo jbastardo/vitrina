@@ -2,7 +2,10 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = [
+  "npm cache clean --force",
+  "npm install --legacy-peer-deps --cache /tmp/.npm-cache"
+]
 
 [phases.build]
 cmds = ["npm run build"]
